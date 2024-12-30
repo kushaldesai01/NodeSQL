@@ -1,8 +1,8 @@
 import { Request, Response } from "express";
 import { responseHandler } from "../../services/responseHandler";
-import { checkJWTExpire, generateJWT } from "./authService";
+import { checkJWT, generateJWT } from "./authService";
 import { loginSchemaType, signupSchemaType } from "./authSchema";
-import { stringDecryption, stringEncryption } from "../../services/functions";
+import { getErrorMessage, stringDecryption, stringEncryption } from "../../services/functions";
 import { prisma } from "../../database/connection";
 
 export const signup = async (req: Request<{}, {}, signupSchemaType>, res: Response) => {
@@ -21,33 +21,33 @@ export const signup = async (req: Request<{}, {}, signupSchemaType>, res: Respon
       },
     });
     return responseHandler(res).success("Signed up successfully", { token: data?.token });
-  } catch (error: any) {
-    return responseHandler(res).failure(error.message);
+  } catch (error) {
+    return responseHandler(res).failure(getErrorMessage(error));
   }
 };
 
 export const login = async (req: Request<{}, {}, loginSchemaType>, res: Response) => {
   try {
     const { email, password } = req.body;
-    const findEmail = await prisma.users.findMany({ where: { email: email }, select: { password: true, token: true } });
-    if (findEmail.length === 0) {
+    const findEmail = await prisma.users.findFirst({ where: { email: email }, select: { password: true, token: true } });
+    if (!findEmail) {
       return responseHandler(res).failure("Invalid credentials");
     }
-    const decryptedPassword = await stringDecryption(findEmail[0]["password"]);
+    const decryptedPassword = await stringDecryption(findEmail.password);
     if (password !== decryptedPassword) {
       return responseHandler(res).failure("Invalid credentials");
     }
 
-    const isTokenExpired = await checkJWTExpire(findEmail[0]["token"] ?? "");
+    const checkToken = await checkJWT(findEmail.token ?? "");
     let generatedToken: string;
-    if (isTokenExpired) {
+    if (!checkToken.valid) {
       generatedToken = await generateJWT({ email: email });
       await prisma.users.update({ where: { email: email }, data: { token: generatedToken } });
     } else {
-      generatedToken = findEmail[0]["token"] as string;
+      generatedToken = findEmail.token as string;
     }
     return responseHandler(res).success("Logged in successfully", { token: generatedToken });
-  } catch (error: any) {
-    return responseHandler(res).failure(error.message);
+  } catch (error) {
+    return responseHandler(res).failure(getErrorMessage(error));
   }
 };

@@ -8,7 +8,7 @@ export const swaggerJSON = {
   },
   servers: [
     {
-      url: APP.APP_LINK,
+      url: APP.APP_URL,
     },
   ],
   tags: [
@@ -30,6 +30,7 @@ export const swaggerJSON = {
                   name: "test",
                   email: "test@mailinator.com",
                   password: "aA@12345",
+                  confirm_password: "aA@12345",
                 },
               },
             },

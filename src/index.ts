@@ -1,4 +1,5 @@
 import express, { NextFunction, Request, Response } from "express";
+import cors from "cors";
 import swaggerUI from "swagger-ui-express";
 import { APP } from "./variables/constants";
 const app = express();
@@ -11,6 +12,7 @@ import { swaggerJSON } from "./services/swagger";
 connectToDatabase();
 
 // middleware
+app.use(cors());
 app.use(express.json());
 
 // swagger
@@ -23,7 +25,7 @@ app.use("/api", appRouter);
 
 // catch any error
 app.use((err: any, req: Request, res: Response, next: NextFunction) => {
-  return responseHandler(res, err.status || 500).failure(err.message || "Internal error");
+  return responseHandler(res, err?.status ?? 500).failure(err?.message ?? "Internal server error");
 });
 
 // URL not found error
@@ -33,5 +35,5 @@ app.use("*", (req: Request, res: Response) => {
 
 // app listen
 app.listen(APP.PORT, () => {
-  console.log(APP.APP_LINK);
+  console.log(APP.APP_URL);
 });

@@ -3,6 +3,8 @@ import { NextFunction, Request, Response } from "express";
 import { responseHandler } from "../../services/responseHandler";
 import { APP } from "../../variables/constants";
 import { prisma } from "../../database/connection";
+import { checkJWT } from "./authService";
+import { getErrorMessage } from "../../services/functions";
 
 export const verifyToken = async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -16,20 +18,26 @@ export const verifyToken = async (req: Request, res: Response, next: NextFunctio
     } else {
       token = headerArr[0];
     }
+    const checkToken = await checkJWT(token);
+    if (!checkToken.valid) {
+      return responseHandler(res, 401).failure("Invalid token");
+    }
+    let findToken = await prisma.users.findFirst({ where: { token: token } });
+    if (!findToken) {
+      return responseHandler(res, 401).failure("Invalid token");
+    }
     try {
-      let val = await prisma.users.findMany({ where: { token: token } });
-      if (val.length === 0) {
+      if (!findToken) {
         return responseHandler(res, 401).failure("Invalid token");
       }
-      jwt.verify(token, APP.JWT_SECRET_KEY);
-      req.user_id = val[0]["id"];
-      req.email = val[0]["email"];
-      return next();
     } catch (err) {
       return responseHandler(res, 401).failure("Invalid token");
     }
-  } catch (error: any) {
-    return responseHandler(res, 401).failure(error.message);
+    req.user_id = findToken.id;
+    req.email = findToken.email;
+    return next();
+  } catch (error) {
+    return responseHandler(res, 401).failure(getErrorMessage(error));
   }
 };
 

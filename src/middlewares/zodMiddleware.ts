@@ -1,17 +1,21 @@
 import { NextFunction, Request, Response } from "express";
 import { ZodSchema } from "zod";
 import { responseHandler } from "../services/responseHandler";
+import { getErrorMessage } from "../services/functions";
 
 export const zodSchemaValidator =
-  (schema: ZodSchema, requestPayload: { body?: boolean; query?: boolean }) =>
+  (schema: ZodSchema, requestPayload: { body?: boolean; query?: boolean; params?: boolean }) =>
   (req: Request, res: Response, next: NextFunction) => {
     try {
       let requestData = {};
-      if (requestPayload.body) {
-        requestData = { ...req.body };
+      if (requestPayload.params) {
+        requestData = { ...req.params };
       }
       if (requestPayload.query) {
         requestData = { ...requestData, ...req.query };
+      }
+      if (requestPayload.body) {
+        requestData = { ...requestData, ...req.body };
       }
       let result = schema.safeParse(requestData);
       if (!result.success) {
@@ -27,7 +31,7 @@ export const zodSchemaValidator =
       } else {
         next();
       }
-    } catch (error: any) {
-      return responseHandler(res).failure(error.message);
+    } catch (error) {
+      return responseHandler(res).failure(getErrorMessage(error));
     }
   };

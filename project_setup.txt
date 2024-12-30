@@ -1,0 +1,20 @@
+npm init
+npm install typescript ts-node @types/node --save-dev
+npx tsc --init
+"make necessary(outDir, rootDir, include src/**/*) changes in tsconfig.json"
+npm install --save-dev nodemon
+"add commands in package.json"
+npm install express
+npm install --save-dev @types/express
+
+npm install prisma @prisma/client
+npx prisma init
+create models
+
+npx prisma migrate dev --name <your-migration-name>
+npx prisma generate
+npx prisma studio
+
+rm -rf node_modules/.cache
+
+npx prisma migrate dev
